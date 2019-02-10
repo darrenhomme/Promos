@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-#Promos 2.1
+#Promos 2.2
 
 from tkinter import *
 import re
@@ -11,7 +11,7 @@ from tkinter import filedialog
 from tkinter import scrolledtext as ScrolledText 
 import os
 Form1 = Tk()
-Form1.title("Promos 2.1")
+Form1.title("Promos 2.2")
 
 class PromosClass:
     StartSearchTime = datetime.now()
@@ -24,11 +24,11 @@ class PromosClass:
 def FindTag(Input, Tag):
     #Used to find data in logfile
     #Format: <COMPUTER>EPTVTRIO-203</COMPUTER><TIME>1/20/2019 7:00:39 AM</TIME><CHANNEL>A</CHANNEL><TALLY>1</TALLY><PAGE>2660</PAGE><TEMPLATE>ANIMATED_L3RD2</TEMPLATE>
-    #Regex would be a good update
-    if Input.find("<" + Tag + ">") != -1 and Input.find("</" + Tag + ">") != -1:
-        Tag1 = Input.split("<" + Tag + ">")
-        Tag2 = Tag1[1].split("</" + Tag + ">")
-        return Tag2[0]
+    Result = re.findall("<" + Tag +">(.+?)</" + Tag + ">", Input)
+    if len(Result) != 0:
+        return str(Result[0])
+    else:
+        return ""
 
 def OpenFile(Input):
     #Open the file for reading, returns list of lines
