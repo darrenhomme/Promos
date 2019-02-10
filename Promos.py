@@ -1,6 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
-#Promos Py 2.0
+#Promos 2.1
 
 from tkinter import *
 import re
@@ -11,34 +11,15 @@ from tkinter import filedialog
 from tkinter import scrolledtext as ScrolledText 
 import os
 Form1 = Tk()
-Form1.title("Promos 2.0")
-now = datetime.now()
-# 2019-02-07 14:56:09.801933
-StartSearchTime = ""
+Form1.title("Promos 2.1")
 
-TakeList = []
-Billboard = 0
-LowerThird = 0
-OutputStr = ""
-LineCount = 0
-
-def ClearAll():
-    #Reset globals
-    #Note to self, stop using globals, create classes to pass info
-    #Clear textbox
-    global TakeList
-    TakeList.clear()
-    global Billboard
-    Billboard = 0
-    global LowerThird
-    LowerThird = 0
-    global OutputStr
-    OutputStr = ""
-    global LineCount
-    LineCount = 0
-    txtOutput.delete(1.0, END)
-    global StartSearchTime
+class PromosClass:
     StartSearchTime = datetime.now()
+    TakeList = []
+    Billboard = 0
+    LowerThird = 0
+    LineCount = 0
+    OutputStr = ""
 
 def FindTag(Input, Tag):
     #Used to find data in logfile
@@ -65,7 +46,7 @@ def AmPm(Input):
     else:
         return 12
 
-def FindPromos(Input):
+def FindPromos(File, Object):
     #Loops through log
     #Finds take entry echo
     #Only counts if tally was on
@@ -81,7 +62,7 @@ def FindPromos(Input):
     else:
         PromoStartTime = datetime.strptime("1870-12-20 14:56:09", "%Y-%m-%d %H:%M:%S")
         PromoEndTime = datetime.strptime("9999-12-20 14:56:09", "%Y-%m-%d %H:%M:%S")
-    for Line in Input:
+    for Line in File:
         Line = Line.upper()
         if Line.find("<TALLY>1</TALLY>") != -1:
             if Line.find("LOG_MESSAGE") < 0:
@@ -92,12 +73,9 @@ def FindPromos(Input):
                 if PageHour == 24:
                     PageHour = "00"
                 PageTime = datetime.strptime(str(PageTime.year) + "-" + str(PageTime.month) + "-" + str(PageTime.day) + " " + str(PageHour) + ":" + str(PageTime.minute) + ":" + str(PageTime.second), "%Y-%m-%d %H:%M:%S")
-                #print(str(PageTime))
                 Template = FindTag(Line, "TEMPLATE")
                 if Template.find("TOWER") < 0 and Template.find("SIDE_SWIPE") < 0 and Template.find("20005") < 0 and Template.find("TRAFFICLIGHT") < 0 and Template.find("20001") < 0 and Template.find("CUSTOMER_CHOICE") < 0:
                     if (PageTime > PromoStartTime and PageTime < PromoEndTime) == True:
-                        global Billboard
-                        global LowerThird
                         PageSearch = txtPageName.get("1.0", "end-1c")
                         PageSearch = PageSearch.upper()
                         if PageSearch == "":
@@ -105,51 +83,57 @@ def FindPromos(Input):
                         else:
                             PageTime = str(PageTime) + " "
                         if PageSearch == "" or PageSearch == "*":
-                            TakeList.append(" :" + PageTime + FindTag(Line, "PAGE") + ": ")
+                            Object.TakeList.append(" :" + PageTime + FindTag(Line, "PAGE") + ": ")
                             if Template.find("L3RD") != -1:
-                                LowerThird = LowerThird + 1
+                                Object.LowerThird = Object.LowerThird + 1
                             if Template.find("BILLBOARD") != -1:
-                                Billboard = Billboard + 1
+                                Object.Billboard = Object.Billboard + 1
                         elif PageSearch == FindTag(Line, "PAGE"):
-                            TakeList.append(" :" + PageTime + FindTag(Line, "PAGE") + ": ")
+                            Object.TakeList.append(" :" + PageTime + FindTag(Line, "PAGE") + ": ")
                             if Template.find("L3RD") != -1:
-                                LowerThird = LowerThird + 1
+                                Object.LowerThird = Object.LowerThird + 1
                             if Template.find("BILLBOARD") != -1:
-                                Billboard = Billboard + 1
+                                Object.Billboard = Object.Billboard + 1
+    return Object
 
 def SortTakes(Input):
     #Bubble sort the list
     #Numbers then A-Z
-    for y in range(0, len(Input) - 1):
-        for i in range(0, len(Input) - 1):
-            if Input[i] > Input[i + 1]:
-                Swap = Input[i]
-                Input[i] = Input[i + 1]
-                Input[i + 1] = Swap
+    for y in range(0, len(Input.TakeList) - 1):
+        for i in range(0, len(Input.TakeList) - 1):
+            if Input.TakeList[i] > Input.TakeList[i + 1]:
+                Swap = Input.TakeList[i]
+                Input.TakeList[i] = Input.TakeList[i + 1]
+                Input.TakeList[i + 1] = Swap
     return Input
 
-def CountTakes():
+def CountTakes(Input):
     #Find how many takes of each list item there are
     #Only add reseilt to the output if is a new result
-    global OutputStr
-    global TakeList
-    for i in range(0, len(TakeList)):
-        if OutputStr.find(str(TakeList[i]) + str(TakeList.count(TakeList[i]))) < 0:
-            OutputStr = OutputStr + str(TakeList[i]) + str(TakeList.count(TakeList[i])) + "\n"
+    for i in range(0, len(Input.TakeList)):
+        if Input.OutputStr.find(str(Input.TakeList[i]) + str(Input.TakeList.count(Input.TakeList[i]))) < 0:
+            Input.OutputStr = Input.OutputStr + str(Input.TakeList[i]) + str(Input.TakeList.count(Input.TakeList[i])) + "\n"
+    return Input
 
-def Summary():
+def Summary(Input):
     #States that go on the end of the output
-    global Billboard
-    global LowerThird
-    global OutputStr
-    global StartSearchTime
     EndSearchTime = datetime.now()
-    OutputStr = OutputStr + "\n" + "Number of Promos: " + str(len(TakeList)) + "\n"
-    OutputStr = OutputStr + "Number of Lower Thirds: " + str(LowerThird) + "\n"
-    OutputStr = OutputStr + "Number of Billboards: " + str(Billboard) + "\n"
-    OutputStr = OutputStr + "Search Time: " + str(EndSearchTime - StartSearchTime) + "\n"
-    OutputStr = OutputStr.replace(" :" , "")
-    txtOutput.insert(END, OutputStr)
+    Input.OutputStr = Input.OutputStr + "\n" + "Number of Promos: " + str(len(Input.TakeList)) + "\n"
+    Input.OutputStr = Input.OutputStr + "Number of Lower Thirds: " + str(Input.LowerThird) + "\n"
+    Input.OutputStr = Input.OutputStr + "Number of Billboards: " + str(Input.Billboard) + "\n"
+    Input.OutputStr = Input.OutputStr + "Search Time: " + str(EndSearchTime - Input.StartSearchTime) + "\n"
+    Input.OutputStr = Input.OutputStr.replace(" :" , "")
+    txtOutput.insert(END, Input.OutputStr)
+
+def ClearAll(Input):
+    txtOutput.delete(1.0, END)
+    Input.StartSearchTime = datetime.now()
+    Input.TakeList = []
+    Input.Billboard = 0
+    Input.LowerThird = 0
+    Input.LineCount = 0
+    Input.OutputStr = ""
+    return Input
     
 def OpenOneFile():
     #Button to open a single log file to search
@@ -157,20 +141,24 @@ def OpenOneFile():
     #Time range if used
     #Counts promos
     #Summery of search
-    global TakeList
-    global OutputStr
     FilePath = filedialog.askopenfilename()
     if FilePath != "":
-        ClearAll()
-        OutputStr = FilePath + "\n"
+        Promos = PromosClass()
+        Promos = ClearAll(Promos)
+        Promos.OutputStr = FilePath + "\n"
         Lines = OpenFile(FilePath)
-        FindPromos(Lines)
-        TakeList = SortTakes(TakeList)
+        Promos = FindPromos(Lines, Promos)
+        Promos = SortTakes(Promos)
         if DateState.get() == 1:
-            OutputStr = OutputStr + str(datetime.strptime(txtDate1.get("1.0", "end-1c"), "%Y-%m-%d %H:%M:%S")) + " - " + str(datetime.strptime(txtDate2.get("1.0", "end-1c"), "%Y-%m-%d %H:%M:%S")) + "\n"
-        OutputStr = OutputStr + "Number Of Lines: " + str(len(Lines)) + "\n\n"
-        CountTakes()
-        Summary()
+            Promos.OutputStr = Promos.OutputStr + str(datetime.strptime(txtDate1.get("1.0", "end-1c"), "%Y-%m-%d %H:%M:%S")) + " - " + str(datetime.strptime(txtDate2.get("1.0", "end-1c"), "%Y-%m-%d %H:%M:%S")) + "\n"
+        Promos.OutputStr = Promos.OutputStr + "Number Of Lines: " + str(len(Lines)) + "\n"
+        PageSearch = txtPageName.get("1.0", "end-1c")
+        PageSearch = PageSearch.upper()
+        if PageSearch != "":
+            Promos.OutputStr = Promos.OutputStr + "Page Search: " + PageSearch + "\n"
+        Promos.OutputStr = Promos.OutputStr + "\n"
+        CountTakes(Promos)
+        Summary(Promos)
 
 def OpenFolder():
     #Button to open a folder of log files to search
@@ -180,24 +168,28 @@ def OpenFolder():
     #Counts promos
     #Summery of search
     DirList = filedialog.askdirectory()
-    global TakeList
-    global OutputStr
-    global LineCount
     if str(DirList) != "":
-        ClearAll()
+        LineCount = 0
+        Promos = PromosClass()
+        Promos = ClearAll(Promos)
         ItemList = os.listdir(DirList)
         for Item in ItemList:
             if os.path.isfile(DirList + "/" + Item):
-                OutputStr = OutputStr + DirList + "/" + Item + "\n"
+                Promos.OutputStr = Promos.OutputStr + DirList + "/" + Item + "\n"
                 Lines = OpenFile(DirList + "/" + Item)
-                FindPromos(Lines)
+                Promos = FindPromos(Lines, Promos)
                 LineCount = LineCount + len(Lines)
-        TakeList = SortTakes(TakeList)
+        Promos = SortTakes(Promos)
         if DateState.get() == 1:
-            OutputStr = OutputStr + str(datetime.strptime(txtDate1.get("1.0", "end-1c"), "%Y-%m-%d %H:%M:%S")) + " - " + str(datetime.strptime(txtDate2.get("1.0", "end-1c"), "%Y-%m-%d %H:%M:%S"))+ "\n"
-        OutputStr = OutputStr + "Number Of Lines: " + str(LineCount) + "\n\n"
-        CountTakes()
-        Summary()
+            Promos.OutputStr = Promos.OutputStr + str(datetime.strptime(txtDate1.get("1.0", "end-1c"), "%Y-%m-%d %H:%M:%S")) + " - " + str(datetime.strptime(txtDate2.get("1.0", "end-1c"), "%Y-%m-%d %H:%M:%S")) + "\n"
+        Promos.OutputStr = Promos.OutputStr + "Number Of Lines: " + str(LineCount) + "\n"
+        PageSearch = txtPageName.get("1.0", "end-1c")
+        PageSearch = PageSearch.upper()
+        if PageSearch != "":
+            Promos.OutputStr = Promos.OutputStr + "Page Search: " + PageSearch + "\n"
+        Promos.OutputStr = Promos.OutputStr + "\n"
+        CountTakes(Promos)
+        Summary(Promos)
 
 #Create form
 #Grid manager
@@ -225,6 +217,8 @@ ckDate.grid(row=3,column=2)
 btnFile.grid(row=3,column=1)
 btnFolder.grid(row=4,column=1)
 
+now = datetime.now()
+# 2019-02-07 14:56:09.801933
 txtDate1.insert(END, str(now.year) + "-" + str(now.month) + "-" + str(now.day) + " " + str(now.hour) + ":00:00")
 txtDate2.insert(END, str(now.year) + "-" + str(now.month) + "-" + str(now.day) + " " + str(now.hour) + ":59:59")
 
